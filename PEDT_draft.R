@@ -1,0 +1,2525 @@
+setwd("~/Documents/Research/PEDT")
+
+##data import
+library(readxl)
+baza <- read_excel("data_pedt.xlsx")
+
+
+
+library(ggplot2)
+library(psych)
+library(nnet)
+options(scipen = 999)
+
+summary(baza$or3)
+
+## s_pedt01 - PEDT binarna
+#PEDT - im niższy wynik, tyl lepiej (mała szansa na zaburzenie)
+
+summary(as.factor(baza$s_pedt01))
+
+baza$s_pedt01 = factor(baza$s_pedt01,
+                       levels = c(0,1),
+                       labels = c("0","1"))
+summary(baza$s_pedt01)
+
+# dataset coding ------------------------------------- 
+#### DEMOGRAPHICS ####
+#### sexual identity (self-desc.) ####
+
+baza$or3
+
+baza$or3 = factor(baza$or3,
+                  levels = c("heteroseksualna","biseksualna","homoseksualna"),
+                  labels = c("hetero", "bi", "homo"))
+
+summary(baza$or3)
+
+#### sexual identity (behavior) ####
+
+#baza$orz3 = factor(baza$orz3,
+ #                  levels = c(1,2,3),
+  #                 labels = c("women only", "men only","both"))
+
+
+
+
+#### sexual identity (attraction) ####
+#baza$or5 = factor(baza$or5,
+ #                 levels = c(1,2,3,4,5,6),
+  #                labels = c("women only", "women mostly",
+ #                            "both", "men mostly", "men only", "not sure"))
+
+#### wiek ####
+describeBy(baza$wiek, group = baza$or3)
+
+#### wielkość miejsca zamieszkania ####
+
+summary(as.factor(baza$mieszk))
+
+baza$mieszk = factor(baza$mieszk,
+                     levels = c("do 10 tys.", "10,1 do 11 tys.", 
+                                "20,1 do 50 tys.", "50,1 do 100 tys.",
+                                "100,1 do 500 tys.", "500,1 do 1 mln.",
+                                "> 1 mln."),
+                     labels = c(">10k","10-11k","20-50k","50-100k",
+                                "100-500","500k-1m",">1m"))
+
+baza$residence01[baza$mieszk == ">10k"] <- 0
+baza$residence01[baza$mieszk == "10-11k"] <- 0
+baza$residence01[baza$mieszk == "20-50k"] <- 0
+baza$residence01[baza$mieszk == "50-100k"] <- 0
+baza$residence01[baza$mieszk == "100-500"] <- 0
+baza$residence01[baza$mieszk == "500k-1m"] <- 1
+baza$residence01[baza$mieszk == ">1m"] <- 1
+
+baza$residence01 = factor(baza$residence01,
+                          levels = c(0,1),
+                          labels = c("<500k", ">500k"))
+
+summary(baza$residence01)
+
+#### województwo ####
+#baza$woj = factor(baza$woj,
+ #                 levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17),
+  #                labels = c("d.śl","kuj-pom","lubel","lubu","łodź",
+   #                          "małop", "mazow", "opol", "podk", "podl",
+    #                         "pom", "śl", "święt", "war-maz", "wlkp",
+     #                        "zach-pom", "foreign"))
+
+#### edukacja ####
+summary(as.factor(baza$edu_rec))
+
+baza$edu_rec = factor(baza$edu_rec,
+                      levels = c("pod-gim","zawodowe","srednie","inz / lic",
+                                 "mgr i wyzej"),
+                      labels = c("pod-gim", "zawodowe",
+                                 "srednie", "inz-lic", "mgr"))
+summary(baza$edu_rec)
+
+#university experience
+baza$edu01[baza$edu_rec == "pod-gim"] <- 0
+baza$edu01[baza$edu_rec == "zawodowe"] <- 0
+baza$edu01[baza$edu_rec == "srednie"] <- 0
+baza$edu01[baza$edu_rec == "inz-lic"] <- 1
+baza$edu01[baza$edu_rec == "mgr"] <- 1
+
+baza$edu01 = factor(baza$edu01,
+                    levels = c(0,1),
+                    labels = c("no university", "university experience"))
+
+summary(baza$edu01)
+
+#### sytuacja finansowa ####
+summary(as.factor(baza$fin))
+baza$fin = factor(baza$fin,
+                  levels = c("z wielka trudnoscia","z trudnoscia",
+                             "z pewna trudnoscia","raczej latwo",
+                             "latwo"),
+                  labels = c("z wielka trudnoscia", "z trudnoscia",
+                             "z pewna trudnoscia", "raczej latwo",
+                             "latwo"))
+
+summary(baza$fin)
+
+#doświadcza trudności
+
+baza$finanse_hardship01[baza$fin == "z wielka trudnoscia"] <- 1
+baza$finanse_hardship01[baza$fin == "z trudnoscia"] <- 1
+baza$finanse_hardship01[baza$fin == "z pewna trudnoscia"] <- 1
+baza$finanse_hardship01[baza$fin == "raczej latwo"] <- 0
+baza$finanse_hardship01[baza$fin == "latwo"] <- 0
+
+baza$finanse_hardship01 = factor(baza$finanse_hardship01,
+                                 levels = c(0,1),
+                                 labels = c("no", "yes"))
+
+summary(baza$finanse_hardship01)
+
+
+
+#### związek ####
+baza$zwiazek = as.factor(baza$zwiazek)
+
+#baza$zwiazek = factor(baza$zwiazek,
+ #                     levels = c(1,2,3,4,5,6),
+  #                    labels = c("singiel", "nieformalny", "malzenstwo",
+ #                                "rozwod/separacja", "wdowiec", "inne"))
+
+#### związek binary ####
+baza$zwiazek01 = factor(baza$zwiazek01,
+                        levels = c(0,1),
+                        labels = c("0", "1"))
+summary(baza$zwiazek01)
+
+
+#### płeć partnera ####
+
+baza$partn_plec = as.factor(baza$partn_plec)
+
+#baza$partn_plec = factor(baza$partn_plec,
+#                         levels = c(1,2),
+ #                        labels = c("woman", "man"))
+
+
+#### kontakty seksualne poza związkiem ####
+summary(as.factor(baza$partn_seks))
+
+baza$partn_seks = factor(baza$partn_seks,
+                         levels = c("zadne nie utrz kon seks poza zw",
+                                    "jedno utrzymuje",
+                                    "oboje utrzymuja"),
+                         labels = c("none", "one", "both"))
+summary(baza$partn_seks)
+
+#kontakty poza związkiem
+
+baza$exclusive01[baza$partn_seks == "none"] <-1
+baza$exclusive01[baza$partn_seks == "one"] <-0
+baza$exclusive01[baza$partn_seks == "both"] <-0
+
+baza$exclusive01 = factor(baza$exclusive01,
+                          levels = c(0,1),
+                          labels = c("no", "yes"))
+
+summary(baza$exclusive01)
+
+
+#### iief - 5 kategorii ####
+baza$s_iief_efcat = factor(baza$s_iief_efcat,
+                           levels = c(1,2,3,4,5),
+                           labels = c("severe", "moderate", "mild to moderate",
+                                      "mild", "no"))
+summary(baza$s_iief_efcat)
+
+#### PEDT - 3 kategorie ####
+baza$s_pedt_cat = factor(baza$s_pedt_cat,
+                         levels = c("niskie prawdop. PE",
+                                    "prawdopodobne PE",
+                                    "PE"),
+                         labels = c("niskie", "prawdopodobne", "PE"))
+summary(baza$s_pedt_cat)
+
+#### SEXUAL ACTIVITY ####
+
+#### liczba partnerów w ostatnich 12 miesiącach ####
+summary(baza$n_12mr)
+
+
+#### masturbacja ####
+
+baza$cz_masturbacja = factor(baza$cz_masturbacja,
+                             levels = c(0,1),
+                             labels = c("no", "yes"))
+summary(baza$cz_masturbacja)
+
+#### całowanie ####
+baza$cz_calowanie = factor(baza$cz_calowanie,
+                           levels = c(0,1),
+                           labels = c("no", "yes"))
+summary(baza$cz_calowanie)
+
+#### całowanie ciała ####
+baza$cz_calow_ciala = factor(baza$cz_calow_ciala,
+                             levels = c(0,1),
+                             labels = c("no", "yes"))
+summary(baza$cz_calow_ciala)
+
+#### penetracja waginalna ####
+baza$cz_penet_vag = factor(baza$cz_penet_vag,
+                           levels = c(0,1),
+                           labels = c("no", "yes"))
+summary(baza$cz_penet_vag)
+
+
+#### analny aktywny ####
+baza$cz_anal_czynny = factor(baza$cz_anal_czynny,
+                             levels = c(0,1),
+                             labels = c("no", "yes"))
+summary(baza$cz_anal_czynny)
+
+
+#### analny pasywny ####
+baza$cz_anal_pasywn = factor(baza$cz_anal_pasywn,
+                             levels = c(0,1),
+                             labels = c("no", "yes"))
+summary(baza$cz_anal_pasywn)
+
+#### oralny (insertywny) ####
+baza$cz_oral_wkladpenisa = factor(baza$cz_oral_wkladpenisa,
+                                  levels = c(0,1),
+                                  labels = c("no", "yes"))
+summary(baza$cz_oral_wkladpenisa)
+
+
+#### oralny (receptywny) ####
+baza$cz_oral_penisdobuzi = factor(baza$cz_oral_penisdobuzi,
+                                  levels = c(0,1),
+                                  labels = c("no", "yes"))
+summary(baza$cz_oral_penisdobuzi)
+
+
+#### mineta ####
+baza$cz_oral_mineta = factor(baza$cz_oral_mineta,
+                             levels = c(0,1),
+                             labels = c("no", "yes"))
+summary(baza$cz_oral_mineta)
+
+#### ręczne stymulowanie (tobie) ####
+baza$cz_recznytobie = factor(baza$cz_recznytobie,
+                             levels = c(0,1),
+                             labels = c("no", "yes"))
+summary(baza$cz_recznytobie)
+
+#### ręczne stymulowanie (komuś) ####
+baza$cz_recznykomus = factor(baza$cz_recznykomus,
+                             levels = c(0,1),
+                             labels = c("no", "yes"))
+summary(baza$cz_recznykomus)
+
+#### aktywność fizyczna ####
+baza$sport_reg = factor(baza$sport_reg,
+                        levels = c(0,1),
+                        labels = c("no", "yes"))
+summary(baza$sport_reg)
+
+##### NHS #####
+#### brak zainteresowania seksem ####
+baza$nhs1 = factor(baza$nhs1,
+                   levels = c(0,1),
+                   labels = c("no", "yes"))
+summary(baza$nhs1)
+
+#### brak możliwości osiągnięcia orgazmu ####
+baza$nhs2 = factor(baza$nhs2,
+                   levels = c(0,1),
+                   labels = c("no", "yes"))
+summary(baza$nhs2)
+
+#### przedwczesny wytrysk ####
+baza$nhs3 = factor(baza$nhs3,
+                   levels = c(0,1),
+                   labels = c("no", "yes"))
+summary(baza$nhs3)
+
+#### ból fizyczny ####
+baza$nhs4 = factor(baza$nhs4,
+                   levels = c(0,1),
+                   labels = c("no", "yes"))
+summary(baza$nhs4)
+
+#### seks nie sprawia przyjemności ####
+baza$nhs5 = factor(baza$nhs5,
+                   levels = c(0,1),
+                   labels = c("no", "yes"))
+
+summary(baza$nhs5)
+
+
+#### lęk zadaniowy ####
+baza$nhs6 = factor(baza$nhs6,
+                   levels = c(0,1),
+                   labels = c("no", "yes"))
+
+summary(baza$nhs6)
+
+
+#### problemy z erekcją ####
+baza$nhs7 = factor(baza$nhs7,
+                   levels = c(0,1),
+                   labels = c("no", "yes"))
+
+summary(baza$nhs7)
+
+
+###### CHOROBY #####
+
+#### choroby krążenia ####
+
+baza$ch_kraz
+
+baza$ch_kraz = factor(baza$ch_kraz,
+                      levels = c("0","nie"),
+                      labels = c("no", "yes"))
+summary(baza$ch_kraz)
+
+#### cukrzyca ####
+baza$ch_cukrzyca = factor(baza$ch_cukrzyca,
+                          levels = c("0","nie"),
+                          labels = c("no", "yes"))
+summary(baza$ch_cukrzyca)
+
+#### prostata ####
+baza$ch_prostata = factor(baza$ch_prostata,
+                          levels = c("0","nie"),
+                          labels = c("no", "yes"))
+
+#### tarczyca ####
+baza$ch_tarczyca = factor(baza$ch_tarczyca,
+                          levels = c("0","nie"),
+                          labels = c("no", "yes"))
+
+#### hiperprolaktynemia ####
+baza$ch_chiperpro = factor(baza$ch_chiperpro,
+                           levels = c("0","nie"),
+                           labels = c("no", "yes"))
+
+
+#### cholesterol ####
+baza$ch_cholesterol = factor(baza$ch_cholesterol,
+                             levels = c("0","nie"),
+                             labels = c("no", "yes"))
+
+#### aids ####
+baza$ch_aids = factor(baza$ch_aids,
+                      levels = c("0","nie"),
+                      labels = c("no", "yes"))
+
+#### depresja ####
+baza$ch_depresja = factor(baza$ch_depresja,
+                          levels = c("0","nie"),
+                          labels = c("no", "yes"))
+
+
+#### nerwica ####
+baza$ch_nerwica = factor(baza$ch_nerwica,
+                         levels = c("0","nie"),
+                         labels = c("no", "yes"))
+
+#### alkoholizm ####
+baza$ch_alkoiuzal = factor(baza$ch_alkoiuzal,
+                           levels = c("0","nie"),
+                           labels = c("no", "yes"))
+
+
+
+#### inne choroby ####
+baza$ch_inne = factor(baza$ch_inne,
+                      levels = c(0,1),
+                      labels = c("no", "yes"))
+summary(baza$ch_inne)
+#### zażywane leki ####
+baza$ch_leki = factor(baza$ch_leki,
+                      levels = c(0,1),
+                      labels = c("no", "yes"))
+
+
+#### regularnie pije alkohol ####
+baza$u_alkohol = factor(baza$u_alkohol,
+                        levels = c(0,1),
+                        labels = c("no", "yes"))
+
+
+#### regularnie używa nikotyny ####
+baza$u_nikotyna = factor(baza$u_nikotyna,
+                         levels = c(0,1),
+                         labels = c("no", "yes"))
+
+
+#### regularnie narkotyki ####
+baza$u_narkotyki = factor(baza$u_narkotyki,
+                          levels = c(0,1),
+                          labels = c("no", "yes"))
+
+
+#### penetracja - top 3 ####
+
+summary(as.factor(baza$penetracja))
+
+baza$penetracja
+
+baza$penetracjatop3[baza$penetracja == 0] <-0
+baza$penetracjatop3[baza$penetracja == 1] <-1
+baza$penetracjatop3[baza$penetracja == 2] <-2
+
+baza$penetracjatop3 = factor(baza$penetracjatop3,
+                             levels = c(0,1,2),
+                             labels = c("no", "yes 1", "yes 2"))
+
+
+#### niepenetracyjny - preferencja top3 ####
+baza$niepenetracyjny = (baza$pls_masturbacja + baza$pls_calowanie + 
+                          baza$pls_calow_ciala + baza$pls_anal_pasywn + 
+                          baza$pls_oral_penisdobuzi + baza$pls_oral_mineta +
+                          baza$pls_recznytobie + baza$pls_recznykomus)
+
+summary(as.factor(baza$niepenetracyjny))
+
+baza$niepenetracyjnytop3[baza$niepenetracyjny == 0] <- 0
+baza$niepenetracyjnytop3[baza$niepenetracyjny == 1] <- 1
+baza$niepenetracyjnytop3[baza$niepenetracyjny == 2] <- 2
+baza$niepenetracyjnytop3[baza$niepenetracyjny == 3] <- 2
+
+
+
+baza$niepenetracyjnytop3 = factor(baza$niepenetracyjnytop3,
+                                  levels = c(0,1,2),
+                                  labels = c("no", "yes 1", "yes 2"))
+
+baza$niepenetracyjnytop3
+
+
+
+# SEXUAL IDENTITY PLOTS --------------------------
+
+#### jitterplot PEDT x sexual identity (self-report) ####
+library(ggplot2)
+clean = theme(panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.background = element_blank(),
+              axis.line = element_line(color = "black"))
+
+
+ggplot(data = baza,
+       aes(s_pedt, or3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  geom_vline(xintercept = 8, linetype = "dashed")+
+  geom_vline(xintercept = 11, linetype = "dashed")+
+  scale_x_continuous("PEDT",
+                     breaks = c(0,5,9.5,14,20),
+                     labels = c("0", "No PE", "Probable PE", "PE", "20"))+
+  scale_y_discrete("Sexual orientation (self-identify)", 
+                   labels = c("Heterosexual", 
+                              "Homosexual", 
+                              "Bisexual"))+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color = "black"),
+        axis.title.x = element_text(size = 10, family = "Arial Narrow"), 
+        axis.title.y = element_text(size = 10, family = "Arial"), 
+        axis.text = element_text(size = 10, family = "Arial Narrow"))
+
+
+
+
+### wersja polska
+ggplot(data = baza,
+       aes(s_pedt, or3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  geom_vline(xintercept = 8, linetype = "dashed")+
+  geom_vline(xintercept = 11, linetype = "dashed")+
+  scale_x_continuous("PEDT",
+                     breaks = c(0,5,9.5,14,20),
+                     labels = c("0", "Bez WP", "P-WP", "WP", "20"))+
+  scale_y_discrete("Identyfikacja seksualna (samoopis)", 
+                   labels = c("Heteroseksualna", 
+                              "Homoseksualna", 
+                              "Biseksualna"))+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.line = element_line(color = "black"),
+        axis.title.x = element_text(size = 10, family = "Arial Narrow"), 
+        axis.title.y = element_text(size = 10, family = "Arial"), 
+        axis.text = element_text(size = 10, family = "Arial Narrow"))
+
+
+
+
+#### jitterplot PEDT x sexual identity (behavior) ####
+ggplot(data = baza,
+       aes(s_pedt, orz3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  geom_vline(xintercept = 8, linetype = "dashed")+
+  geom_vline(xintercept = 11, linetype = "dashed")+
+  scale_x_continuous("PEDT",
+                     breaks = c(0,5,9.5,14,20),
+                     labels = c("0","No PE", "Probable PE", "PE","20"))+
+  scale_y_discrete("Sexual orientation (behavior)", 
+                   labels = c("Women only", 
+                              "Men only", 
+                              "Both"))+
+  clean
+
+  
+#### jitterplot PEDT x sexual identity (attraction) ####
+ggplot(data = baza,
+       aes(s_pedt, or5))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  geom_vline(xintercept = 8, linetype = "dashed")+
+  geom_vline(xintercept = 11, linetype = "dashed")+
+  scale_x_continuous("PEDT",
+                     breaks = c(0,5,9.5,14,20),
+                     labels = c("0","No PE", "Probable PE", "PE","20"))+
+  scale_y_discrete("Sexual orientation (attraction)",
+                   labels = c("Women only", "Women mostly", "Both",
+                              "Men mostly", "Men only", "Not sure"))+
+  clean
+
+
+
+# 14.04.2021 - Multinomial logit models (Mlog) ------------------
+library(mlogit) #multinomial model
+
+summary(as.factor(baza$pedt1))
+
+mul.log = mlogit.data(baza,
+                      choice = "s_pedt_cat", shape = "wide")
+
+
+# (Mlog) UNIVARIATE ANALYSES -------------------
+#### sexual-identity ####
+cat1 = mlogit(data = mul.log,
+       s_pedt_cat ~ 1|or3)
+summary(cat1)
+exp(cat1$coefficients)
+
+summary(baza$or3)
+
+
+#### sexual behavior ####
+cat2 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|orz3)
+summary(cat2)
+exp(cat2$coefficients)
+
+#### sexual attraction ####
+cat3 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|or5)
+summary(cat3)
+exp(cat3$coefficients)
+
+
+#### (Mlog) univariate - DEMOGRAPHICS ####
+
+#### PEDT ~ wiek ####
+cat4 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|wiek)
+summary(cat4)
+exp(cat4$coefficients)
+
+#### PEDT ~ miejsce zamieszkania ####
+cat5 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|mieszk)
+summary(cat5)
+exp(cat5$coefficients)
+
+cat5.a = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|residence01)
+summary(cat5.a)
+exp(cat5.a$coefficients)
+
+#### PEDT ~ edukacja - DO REKODOWANIA ####
+cat6 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|edu_rec.mgr)
+summary(cat6)
+exp(cat6$coefficients)
+
+
+cat6.a = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|edu01)
+summary(cat6.a)
+exp(cat6.a$coefficients)
+
+
+
+#### PEDT ~ sytuacja finansowa ####
+cat7 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|fin.ref)
+summary(cat7)
+exp(cat7$coefficients)
+
+
+cat7.a = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|finanse_hardship01)
+summary(cat7.a)
+exp(cat7.a$coefficients)
+
+
+#### PEDT ~ status związku ####
+cat8 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|zwiazek01)
+summary(cat8)
+exp(cat8$coefficients)
+
+#### PEDT ~ czas związku ####
+cat9 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|czas_zwiazek)
+summary(cat9)
+exp(cat9$coefficients)
+
+#### PEDT ~ płeć partnera ####
+cat10 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|partn_plec)
+summary(cat10)
+exp(cat10$coefficients)
+
+#### PEDT ~ kontakty poza związkiem ####
+cat11 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|partn_seks)
+summary(cat11)
+exp(cat11$coefficients)
+
+#związek na wyłączność no/yes
+cat11.a = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|exclusive01)
+summary(cat11.a)
+exp(cat11.a$coefficients)
+
+
+
+#### (Mlog) LIFESTYLE####
+#### PEDT ~ suma aktywności ####
+cat12 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|s_aktywnosci)
+summary(cat12)
+exp(cat12$coefficients)
+
+#### PEDT ~ regular sport ####
+cat13 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|sport_reg)
+summary(cat13)
+exp(cat13$coefficients)
+
+#### PEDT ~ liczba partnerów (4 tygodnie) ####
+cat14 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|n_4wr)
+summary(cat14)
+exp(cat14$coefficients)
+
+#### PEDT ~ liczba partnerów (12 miesięcy) ####
+cat15 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|n_12mr)
+summary(cat15)
+exp(cat15$coefficients)
+
+
+#### PEDT ~ liczba partnerów (5 lat) ####
+cat16 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|n_5yr)
+summary(cat16)
+exp(cat16$coefficients)
+
+#### PEDT ~ liczba partnerów (w ciągu życia) ####
+cat17 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|n_allr)
+summary(cat17)
+exp(cat17$coefficients)
+
+#### PEDT ~ regularne picie alkoholu ####
+cat18 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|u_alkohol)
+summary(cat18)
+exp(cat18$coefficients)
+
+#### PEDT ~ regularne używanie nikotyny ####
+cat19 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|u_nikotyna)
+summary(cat19)
+exp(cat19$coefficients)
+
+
+#### PEDT ~ regularne używanie narkotyków ####
+cat20 = mlogit(data = mul.log,
+              s_pedt_cat ~ 1|u_narkotyki)
+summary(cat20)
+exp(cat20$coefficients)
+
+
+#### (Mlog) PROBLEMS & DISEASES ####
+
+#### PEDT ~ lęk zadaniowy ####
+cat21 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|nhs6)
+summary(cat21)
+exp(cat21$coefficients)
+
+#### PEDT ~ cardiovascular ####
+cat22 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_kraz)
+summary(cat22)
+exp(cat22$coefficients)
+
+
+#### PEDT ~ cukrzyca ####
+cat23 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_cukrzyca)
+summary(cat23)
+exp(cat23$coefficients)
+
+#### PEDT ~ prostate ####
+cat24 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_prostata)
+summary(cat24)
+exp(cat24$coefficients)
+
+#### PEDT ~ tarczyca ####
+cat25 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_tarczyca)
+summary(cat25)
+exp(cat25$coefficients)
+
+#### PEDT ~ hiperprolaktynemia ####
+cat26 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_chiperpro)
+summary(cat26)
+exp(cat26$coefficients)
+
+#### PEDT ~ cholesterol ####
+cat27 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_cholesterol)
+summary(cat27)
+exp(cat27$coefficients)
+
+#### PEDT ~ HIV ####
+cat28 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_aids)
+summary(cat28)
+exp(cat28$coefficients)
+
+#### PEDT ~ depresja ####
+cat29 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_depresja)
+summary(cat29)
+exp(cat29$coefficients)
+
+#### PEDT ~ neurozy ####
+cat30 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_nerwica)
+summary(cat30)
+exp(cat30$coefficients)
+
+#### PEDT ~ uzależnienie od alkoholu ####
+cat31 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_alkoiuzal)
+summary(cat31)
+exp(cat31$coefficients)
+
+#### PEDT ~ inne choroby ####
+cat32 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_inne)
+summary(cat32)
+exp(cat32$coefficients)
+
+#### PEDT ~ przyjmowane leki ####
+cat33 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|ch_leki)
+summary(cat33)
+exp(cat33$coefficients)
+
+###### (Mlog) MINORITY STRESS ######
+#### PEDT ~ internalized homophobia ####
+cat34 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|s_ihr)
+summary(cat34)
+exp(cat34$coefficients)
+
+#### PEDT ~ expectations of rejection ####
+cat35 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|s_exrr)
+summary(cat35)
+exp(cat35$coefficients)
+
+#### PEDT ~ concealment  ####
+cat36 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|s_clmr)
+summary(cat36)
+exp(cat36$coefficients)
+
+#### PEDT ~ SM negative events  ####
+cat37 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|s_smne)
+summary(cat37)
+exp(cat37$coefficients)
+
+######### (Mlog) Sexual activity ##########
+######### masturbation #####
+cat38 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_masturbacja)
+summary(cat38)
+exp(cat38$coefficients)
+
+####### passionate kiss ######
+cat39 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_calowanie)
+summary(cat39)
+exp(cat39$coefficients)
+
+####### całowanie ciała ##########
+cat40 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_calow_ciala)
+summary(cat40)
+exp(cat40$coefficients)
+
+####### vaginal penetration ##########
+cat41 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_penet_vag)
+summary(cat41)
+exp(cat41$coefficients)
+
+
+####### anal penetration (insertive) ##########
+cat42 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_anal_czynny)
+summary(cat42)
+exp(cat42$coefficients)
+
+########## anal penetration (receptive) ########
+cat43 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_anal_pasywn)
+summary(cat43)
+exp(cat43$coefficients)
+
+########## oral insertive ##########
+cat44 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_oral_wkladpenisa)
+summary(cat44)
+exp(cat44$coefficients)
+
+######## oral receptive ############
+cat45 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_oral_penisdobuzi)
+summary(cat45)
+exp(cat45$coefficients)
+
+########### oral - mineta ############
+cat46 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_oral_mineta)
+summary(cat46)
+exp(cat46$coefficients)
+
+summary(mul.log$s_pedt_cat)
+
+########## hand stimulation (by partner) ######
+cat47 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_recznytobie)
+summary(cat47)
+exp(cat47$coefficients)
+
+########## hand stimulation (to the partner) #####
+cat48 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|cz_recznykomus)
+summary(cat48)
+exp(cat48$coefficients)
+
+######### cross-check IEFF ########
+cat49 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|s_iief_ef)
+summary(cat49)
+exp(cat49$coefficients)
+
+
+#### IIEF w kategoriach ####
+
+baza$iief_cat_no = relevel(baza$s_iief_efcat, ref = "no")
+
+summary(baza$iief_cat_no)
+
+iief.con = multinom(PEDT_12 ~ iief_cat_no, data = baza)
+print(iief.con)
+exp(coef(iief.con))
+coeftest(iief.con)
+
+
+#### (Mlog) penetracja ####
+cat50 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|penetracjatop3)
+summary(cat50)
+exp(cat50$coefficients)
+
+table(baza$penetracjatop3, baza$s_pedt_cat)
+
+#### (Mlog) niepenetracyjny top3 ####
+cat51 = mlogit(data = mul.log,
+               s_pedt_cat ~ 1|niepenetracyjnytop3)
+summary(cat51)
+exp(cat51$coefficients)
+
+
+#### 09.02.2022 - multinomial  ####
+
+#referencja - niskie PE
+baza$PEDT_12 = relevel(baza$s_pedt_cat, ref = "niskie")
+
+
+mlogit(data = mul.zwiazek,
+       s_pedt_cat ~ 1|or3)
+
+
+
+#### ryzyko PE ~ identyfikacja ####
+
+orientacja = multinom(PEDT_12 ~ or3, data = baza)
+print(orientacja)
+summary(orientacja)
+#OR dla modelu
+exp(coef(orientacja))
+
+library(AER)
+#p values dla modelu
+coeftest(orientacja)
+
+
+#### dodatkowa analiza Lauman ####
+
+#brak zainteresowania seksem
+lauman1 = multinom(PEDT_12 ~ nhs1, data = baza)
+print(lauman1)
+exp(coef(lauman1))
+coeftest(lauman1)
+
+#brak orgazmu
+lauman2 = multinom(PEDT_12 ~ nhs2, data = baza)
+print(lauman2)
+exp(coef(lauman2))
+coeftest(lauman2)
+
+#przedwczesny wytrysk
+lauman3 = multinom(PEDT_12 ~ nhs3, data = baza)
+print(lauman3)
+exp(coef(lauman3))
+coeftest(lauman3)
+
+#ból fizyczny
+lauman4 = multinom(PEDT_12 ~ nhs4, data = baza)
+print(lauman4)
+exp(coef(lauman4))
+coeftest(lauman4)
+
+#brak przyjemności
+lauman5 = multinom(PEDT_12 ~ nhs5, data = baza)
+print(lauman5)
+exp(coef(lauman5))
+coeftest(lauman5)
+
+#lek zadaniowy
+lauman6 = multinom(PEDT_12 ~ nhs6, data = baza)
+print(lauman6)
+exp(coef(lauman6))
+coeftest(lauman6)
+
+#problemy z erekcją
+lauman7 = multinom(PEDT_12 ~ nhs7, data = baza)
+print(lauman7)
+exp(coef(lauman7))
+coeftest(lauman7)
+
+
+# SM men wyłącznie - multinomial ----------------
+#baza dla biseksualnych i gejów
+
+#baza.gej
+baza.gej = subset(baza, or3 == "homo"|or3 == "bi")
+baza.gej$bi.ref = relevel(baza.gej$or3, ref = "bi")
+
+
+mul.gej = mlogit.data(baza.gej,
+                      choice = "s_pedt_cat", shape = "wide")
+
+summary(mul.gej)
+
+
+## (Mlog) UNIVARIATE ANALYSES ####
+#### sexual-identity ####
+cat1 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|ident)
+summary(cat1)
+exp(cat1$coefficients)
+
+cat1 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|or3)
+summary(cat1)
+exp(cat1$coefficients)
+
+baza$PEDT_12
+or.gej = multinom(s_pedt_cat ~ bi.ref, data = baza.gej)
+print(or.gej)
+exp(coef(or.gej))
+coeftest(or.gej)
+
+#### sexual behavior ####
+cat2 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|orz3)
+summary(cat2)
+exp(cat2$coefficients)
+
+#### sexual attraction ####
+cat3 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|or5)
+summary(cat3)
+exp(cat3$coefficients)
+
+
+#### (Mlog) univariate - DEMOGRAPHICS ####
+
+#### PEDT ~ wiek ####
+cat4 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|wiek)
+summary(cat4)
+exp(cat4$coefficients)
+
+#### PEDT ~ miejsce zamieszkania ####
+cat5 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|mieszk)
+summary(cat5)
+exp(cat5$coefficients)
+
+cat5.a = mlogit(data = mul.gej,
+                s_pedt_cat ~ 1|residence01)
+summary(cat5.a)
+exp(cat5.a$coefficients)
+
+#### PEDT ~ edukacja - DO REKODOWANIA ####
+cat6 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|edu_rec.mgr)
+summary(cat6)
+exp(cat6$coefficients)
+
+
+cat6.a = mlogit(data = mul.gej,
+                s_pedt_cat ~ 1|edu01)
+summary(cat6.a)
+exp(cat6.a$coefficients)
+
+
+
+#### PEDT ~ sytuacja finansowa ####
+cat7 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|fin.ref)
+summary(cat7)
+exp(cat7$coefficients)
+
+
+cat7.a = mlogit(data = mul.gej,
+                s_pedt_cat ~ 1|finanse_hardship01)
+summary(cat7.a)
+exp(cat7.a$coefficients)
+
+
+#### PEDT ~ status związku ####
+cat8 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|zwiazek01)
+summary(cat8)
+exp(cat8$coefficients)
+
+#### PEDT ~ czas związku ####
+cat9 = mlogit(data = mul.gej,
+              s_pedt_cat ~ 1|czas_zwiazek)
+summary(cat9)
+exp(cat9$coefficients)
+
+#### PEDT ~ płeć partnera ####
+cat10 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|partn_plec)
+summary(cat10)
+exp(cat10$coefficients)
+
+#### PEDT ~ kontakty poza związkiem ####
+cat11 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|partn_seks)
+summary(cat11)
+exp(cat11$coefficients)
+
+#związek na wyłączność no/yes
+cat11.a = mlogit(data = mul.gej,
+                 s_pedt_cat ~ 1|exclusive01)
+summary(cat11.a)
+exp(cat11.a$coefficients)
+
+
+
+#### (Mlog) LIFESTYLE####
+#### PEDT ~ suma aktywności ####
+cat12 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|s_aktywnosci)
+summary(cat12)
+exp(cat12$coefficients)
+
+#### PEDT ~ regular sport ####
+cat13 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|sport_reg)
+summary(cat13)
+exp(cat13$coefficients)
+
+#### PEDT ~ liczba partnerów (4 tygodnie) ####
+cat14 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|n_4wr)
+summary(cat14)
+exp(cat14$coefficients)
+
+#### PEDT ~ liczba partnerów (12 miesięcy) ####
+cat15 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|n_12mr)
+summary(cat15)
+exp(cat15$coefficients)
+
+
+#### PEDT ~ liczba partnerów (5 lat) ####
+cat16 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|n_5yr)
+summary(cat16)
+exp(cat16$coefficients)
+
+#### PEDT ~ liczba partnerów (w ciągu życia) ####
+cat17 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|n_allr)
+summary(cat17)
+exp(cat17$coefficients)
+
+#### PEDT ~ regularne picie alkoholu ####
+cat18 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|u_alkohol)
+summary(cat18)
+exp(cat18$coefficients)
+
+#### PEDT ~ regularne używanie nikotyny ####
+cat19 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|u_nikotyna)
+summary(cat19)
+exp(cat19$coefficients)
+
+
+#### PEDT ~ regularne używanie narkotyków ####
+cat20 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|u_narkotyki)
+summary(cat20)
+exp(cat20$coefficients)
+
+
+#### (Mlog) PROBLEMS & DISEASES ####
+
+#### PEDT ~ lęk zadaniowy ####
+cat21 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|nhs6)
+summary(cat21)
+exp(cat21$coefficients)
+
+#### PEDT ~ cardiovascular ####
+cat22 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_kraz)
+summary(cat22)
+exp(cat22$coefficients)
+
+#### PEDT ~ cukrzyca ####
+cat23 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_cukrzyca)
+summary(cat23)
+exp(cat23$coefficients)
+
+#### PEDT ~ prostate ####
+cat24 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_prostata)
+summary(cat24)
+exp(cat24$coefficients)
+
+#### PEDT ~ tarczyca ####
+cat25 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_tarczyca)
+summary(cat25)
+exp(cat25$coefficients)
+
+#### PEDT ~ hiperprolaktynemia ####
+cat26 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_chiperpro)
+summary(cat26)
+exp(cat26$coefficients)
+
+#### PEDT ~ cholesterol ####
+cat27 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_cholesterol)
+summary(cat27)
+exp(cat27$coefficients)
+
+#### PEDT ~ HIV ####
+cat28 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_aids)
+summary(cat28)
+exp(cat28$coefficients)
+
+#### PEDT ~ depresja ####
+cat29 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_depresja)
+summary(cat29)
+exp(cat29$coefficients)
+
+#### PEDT ~ neurozy ####
+cat30 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_nerwica)
+summary(cat30)
+exp(cat30$coefficients)
+
+#### PEDT ~ uzależnienie od alkoholu ####
+cat31 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_alkoiuzal)
+summary(cat31)
+exp(cat31$coefficients)
+
+#### PEDT ~ inne choroby ####
+cat32 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_inne)
+summary(cat32)
+exp(cat32$coefficients)
+
+#### PEDT ~ przyjmowane leki ####
+cat33 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|ch_leki)
+summary(cat33)
+exp(cat33$coefficients)
+
+###### (Mlog) MINORITY STRESS ######
+#### PEDT ~ internalized homophobia ####
+cat34 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|s_ihr)
+summary(cat34)
+exp(cat34$coefficients)
+
+#### PEDT ~ expectations of rejection ####
+cat35 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|s_exrr)
+summary(cat35)
+exp(cat35$coefficients)
+
+#### PEDT ~ concealment  ####
+cat36 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|s_clmr)
+summary(cat36)
+exp(cat36$coefficients)
+
+#### PEDT ~ SM negative events  ####
+cat37 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|s_smne)
+summary(cat37)
+exp(cat37$coefficients)
+
+######### (Mlog) Sexual activity ##########
+######### masturbation #####
+cat38 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_masturbacja)
+summary(cat38)
+exp(cat38$coefficients)
+
+####### passionate kiss ######
+cat39 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_calowanie)
+summary(cat39)
+exp(cat39$coefficients)
+
+####### całowanie ciała ##########
+cat40 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_calow_ciala)
+summary(cat40)
+exp(cat40$coefficients)
+
+####### vaginal penetration ##########
+cat41 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_penet_vag)
+summary(cat41)
+exp(cat41$coefficients)
+
+
+####### anal penetration (insertive) ##########
+cat42 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_anal_czynny)
+summary(cat42)
+exp(cat42$coefficients)
+
+########## anal penetration (receptive) ########
+cat43 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_anal_pasywn)
+summary(cat43)
+exp(cat43$coefficients)
+
+########## oral insertive ##########
+cat44 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_oral_wkladpenisa)
+summary(cat44)
+exp(cat44$coefficients)
+
+######## oral receptive ############
+cat45 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_oral_penisdobuzi)
+summary(cat45)
+exp(cat45$coefficients)
+
+########### oral - mineta ############
+cat46 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_oral_mineta)
+summary(cat46)
+exp(cat46$coefficients)
+
+########## hand stimulation (by partner) ######
+cat47 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_recznytobie)
+summary(cat47)
+exp(cat47$coefficients)
+
+########## hand stimulation (to the partner) #####
+cat48 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|cz_recznykomus)
+summary(cat48)
+exp(cat48$coefficients)
+
+######### cross-check IEFF ########
+cat49 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|s_iief_ef)
+summary(cat49)
+exp(cat49$coefficients)
+
+
+#### (Mlog) penetracja ####
+cat50 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|penetracjatop3)
+summary(cat50)
+exp(cat50$coefficients)
+
+
+#### (Mlog) niepenetracyjny top 3 ####
+cat51 = mlogit(data = mul.gej,
+               s_pedt_cat ~ 1|niepenetracyjnytop3)
+summary(cat51)
+exp(cat51$coefficients)
+
+
+#### IIEF w kategoriach ####
+
+baza.gej$iief_cat_no = relevel(baza.gej$s_iief_efcat, ref = "no")
+
+summary(baza.gej$iief_cat_no)
+
+iief.con = multinom(PEDT_12 ~ iief_cat_no, data = baza.gej)
+print(iief.con)
+exp(coef(iief.con))
+coeftest(iief.con)
+
+
+
+#### 09.02.2022 - multinomial  ####
+
+#referencja - niskie PE
+baza.gej$PEDT_12 = relevel(baza.gej$s_pedt_cat, ref = "niskie")
+
+
+mlogit(data = mul.gej,
+       s_pedt_cat ~ 1|or3)
+
+
+
+#### ryzyko PE ~ identyfikacja ####
+
+orientacja1 = multinom(PEDT_12 ~ or3, data = baza.gej)
+print(orientacja1)
+summary(orientacja1)
+#OR dla modelu
+exp(coef(orientacja1))
+
+library(AER)
+#p values dla modelu
+coeftest(orientacja1)
+
+
+#### dodatkowa analiza Lauman ####
+
+#brak zainteresowania seksem
+lauman1 = multinom(PEDT_12 ~ nhs1, data = baza.gej)
+print(lauman1)
+exp(coef(lauman1))
+coeftest(lauman1)
+
+#brak orgazmu
+lauman2 = multinom(PEDT_12 ~ nhs2, data = baza.gej)
+print(lauman2)
+exp(coef(lauman2))
+coeftest(lauman2)
+
+#przedwczesny wytrysk
+lauman3 = multinom(PEDT_12 ~ nhs3, data = baza.gej)
+print(lauman3)
+exp(coef(lauman3))
+coeftest(lauman3)
+
+#ból fizyczny
+lauman4 = multinom(PEDT_12 ~ nhs4, data = baza.gej)
+print(lauman4)
+exp(coef(lauman4))
+coeftest(lauman4)
+
+#brak przyjemności
+lauman5 = multinom(PEDT_12 ~ nhs5, data = baza.gej)
+print(lauman5)
+exp(coef(lauman5))
+coeftest(lauman5)
+
+#lek zadaniowy
+lauman6 = multinom(PEDT_12 ~ nhs6, data = baza.gej)
+print(lauman6)
+exp(coef(lauman6))
+coeftest(lauman6)
+
+#problemy z erekcją
+lauman7 = multinom(PEDT_12 ~ nhs7, data = baza.gej)
+print(lauman7)
+exp(coef(lauman7))
+coeftest(lauman7)
+
+names(baza.gej)
+
+
+# Descriptive statistics 10.02.2022 ---------------------
+
+library(psych)
+
+##wiek w grupach
+describeBy(baza$wiek, group = baza$or3)
+
+#czas związku
+describeBy(baza$czas_zwiazek, group = baza$or3)
+
+#internalized homophobia
+describeBy(baza.gej$s_ihr, group = baza.gej$or3)
+
+#rejection
+describeBy(baza.gej$s_exrr, group = baza.gej$or3)
+
+#concealment
+describeBy(baza.gej$s_clmr, group = baza.gej$or3)
+
+#negative events
+describeBy(baza.gej$s_smne, group = baza.gej$or3)
+
+#PEDT continuous
+describeBy(baza$s_pedt, group = baza$or3)
+
+
+
+# włącznie dla M w związku ----------------------
+
+baza.zwiazek = subset(baza, zwiazek01 == "1")
+baza.zwiazek$bi.ref = relevel(baza.zwiazek$or3, ref = "hetero")
+
+mul.zwiazek = mlogit.data(baza.zwiazek,
+                      choice = "s_pedt_cat", shape = "wide")
+
+
+
+
+## (Mlog) UNIVARIATE ANALYSES ####
+#### sexual-identity ####
+cat1 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|bi.ref)
+summary(cat1)
+exp(cat1$coefficients)
+
+#### sexual behavior ####
+cat2 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|orz3)
+summary(cat2)
+exp(cat2$coefficients)
+
+#### sexual attraction ####
+cat3 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|or5)
+summary(cat3)
+exp(cat3$coefficients)
+
+
+#### (Mlog) univariate - DEMOGRAPHICS ####
+
+#### PEDT ~ wiek ####
+cat4 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|wiek)
+summary(cat4)
+exp(cat4$coefficients)
+
+#### PEDT ~ miejsce zamieszkania ####
+cat5 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|mieszk)
+summary(cat5)
+exp(cat5$coefficients)
+
+cat5.a = mlogit(data = mul.zwiazek,
+                s_pedt_cat ~ 1|residence01)
+summary(cat5.a)
+exp(cat5.a$coefficients)
+
+#### PEDT ~ edukacja - DO REKODOWANIA ####
+cat6 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|edu_rec.mgr)
+summary(cat6)
+exp(cat6$coefficients)
+
+
+cat6.a = mlogit(data = mul.zwiazek,
+                s_pedt_cat ~ 1|edu01)
+summary(cat6.a)
+exp(cat6.a$coefficients)
+
+
+
+#### PEDT ~ sytuacja finansowa ####
+cat7 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|fin.ref)
+summary(cat7)
+exp(cat7$coefficients)
+
+
+cat7.a = mlogit(data = mul.zwiazek,
+                s_pedt_cat ~ 1|finanse_hardship01)
+summary(cat7.a)
+exp(cat7.a$coefficients)
+
+
+#### PEDT ~ status związku ####
+cat8 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|zwiazek01)
+summary(cat8)
+exp(cat8$coefficients)
+
+#### PEDT ~ czas związku ####
+cat9 = mlogit(data = mul.zwiazek,
+              s_pedt_cat ~ 1|czas_zwiazek)
+summary(cat9)
+exp(cat9$coefficients)
+
+#### PEDT ~ płeć partnera ####
+cat10 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|partn_plec)
+summary(cat10)
+exp(cat10$coefficients)
+
+#### PEDT ~ kontakty poza związkiem ####
+cat11 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|partn_seks)
+summary(cat11)
+exp(cat11$coefficients)
+
+#związek na wyłączność no/yes
+cat11.a = mlogit(data = mul.zwiazek,
+                 s_pedt_cat ~ 1|exclusive01)
+summary(cat11.a)
+exp(cat11.a$coefficients)
+
+
+
+#### (Mlog) LIFESTYLE####
+#### PEDT ~ suma aktywności ####
+cat12 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|s_aktywnosci)
+summary(cat12)
+exp(cat12$coefficients)
+
+#### PEDT ~ regular sport ####
+cat13 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|sport_reg)
+summary(cat13)
+exp(cat13$coefficients)
+
+#### PEDT ~ liczba partnerów (4 tygodnie) ####
+cat14 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|n_4wr)
+summary(cat14)
+exp(cat14$coefficients)
+
+#### PEDT ~ liczba partnerów (12 miesięcy) ####
+cat15 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|n_12mr)
+summary(cat15)
+exp(cat15$coefficients)
+
+
+#### PEDT ~ liczba partnerów (5 lat) ####
+cat16 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|n_5yr)
+summary(cat16)
+exp(cat16$coefficients)
+
+#### PEDT ~ liczba partnerów (w ciągu życia) ####
+cat17 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|n_allr)
+summary(cat17)
+exp(cat17$coefficients)
+
+#### PEDT ~ regularne picie alkoholu ####
+cat18 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|u_alkohol)
+summary(cat18)
+exp(cat18$coefficients)
+
+#### PEDT ~ regularne używanie nikotyny ####
+cat19 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|u_nikotyna)
+summary(cat19)
+exp(cat19$coefficients)
+
+
+#### PEDT ~ regularne używanie narkotyków ####
+cat20 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|u_narkotyki)
+summary(cat20)
+exp(cat20$coefficients)
+
+
+#### (Mlog) PROBLEMS & DISEASES ####
+
+#### PEDT ~ lęk zadaniowy ####
+cat21 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|nhs6)
+summary(cat21)
+exp(cat21$coefficients)
+
+#### PEDT ~ cardiovascular ####
+cat22 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_kraz)
+summary(cat22)
+exp(cat22$coefficients)
+
+#### PEDT ~ cukrzyca ####
+cat23 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_cukrzyca)
+summary(cat23)
+exp(cat23$coefficients)
+
+#### PEDT ~ prostate ####
+cat24 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_prostata)
+summary(cat24)
+exp(cat24$coefficients)
+
+#### PEDT ~ tarczyca ####
+cat25 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_tarczyca)
+summary(cat25)
+exp(cat25$coefficients)
+
+#### PEDT ~ hiperprolaktynemia ####
+cat26 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_chiperpro)
+summary(cat26)
+exp(cat26$coefficients)
+
+#### PEDT ~ cholesterol ####
+cat27 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_cholesterol)
+summary(cat27)
+exp(cat27$coefficients)
+
+#### PEDT ~ HIV ####
+cat28 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_aids)
+summary(cat28)
+exp(cat28$coefficients)
+
+#### PEDT ~ depresja ####
+cat29 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_depresja)
+summary(cat29)
+exp(cat29$coefficients)
+
+#### PEDT ~ neurozy ####
+cat30 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_nerwica)
+summary(cat30)
+exp(cat30$coefficients)
+
+#### PEDT ~ uzależnienie od alkoholu ####
+cat31 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_alkoiuzal)
+summary(cat31)
+exp(cat31$coefficients)
+
+#### PEDT ~ inne choroby ####
+cat32 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_inne)
+summary(cat32)
+exp(cat32$coefficients)
+
+#### PEDT ~ przyjmowane leki ####
+cat33 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|ch_leki)
+summary(cat33)
+exp(cat33$coefficients)
+
+###### (Mlog) MINORITY STRESS ######
+#### PEDT ~ internalized homophobia ####
+cat34 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|s_ihr)
+summary(cat34)
+exp(cat34$coefficients)
+
+#### PEDT ~ expectations of rejection ####
+cat35 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|s_exrr)
+summary(cat35)
+exp(cat35$coefficients)
+
+#### PEDT ~ concealment  ####
+cat36 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|s_clmr)
+summary(cat36)
+exp(cat36$coefficients)
+
+#### PEDT ~ SM negative events  ####
+cat37 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|s_smne)
+summary(cat37)
+exp(cat37$coefficients)
+
+######### (Mlog) Sexual activity ##########
+######### masturbation #####
+cat38 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_masturbacja)
+summary(cat38)
+exp(cat38$coefficients)
+
+####### passionate kiss ######
+cat39 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_calowanie)
+summary(cat39)
+exp(cat39$coefficients)
+
+####### całowanie ciała ##########
+cat40 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_calow_ciala)
+summary(cat40)
+exp(cat40$coefficients)
+
+####### vaginal penetration ##########
+cat41 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_penet_vag)
+summary(cat41)
+exp(cat41$coefficients)
+
+
+####### anal penetration (insertive) ##########
+cat42 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_anal_czynny)
+summary(cat42)
+exp(cat42$coefficients)
+
+########## anal penetration (receptive) ########
+cat43 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_anal_pasywn)
+summary(cat43)
+exp(cat43$coefficients)
+
+########## oral insertive ##########
+cat44 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_oral_wkladpenisa)
+summary(cat44)
+exp(cat44$coefficients)
+
+######## oral receptive ############
+cat45 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_oral_penisdobuzi)
+summary(cat45)
+exp(cat45$coefficients)
+
+########### oral - mineta ############
+cat46 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_oral_mineta)
+summary(cat46)
+exp(cat46$coefficients)
+
+########## hand stimulation (by partner) ######
+cat47 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_recznytobie)
+summary(cat47)
+exp(cat47$coefficients)
+
+########## hand stimulation (to the partner) #####
+cat48 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|cz_recznykomus)
+summary(cat48)
+exp(cat48$coefficients)
+
+######### cross-check IEFF ########
+cat49 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|s_iief_ef)
+summary(cat49)
+exp(cat49$coefficients)
+
+#### penetracja - top3 ####
+cat50 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|penetracjatop3)
+summary(cat50)
+exp(cat50$coefficients)
+
+
+#### niepenetracyjny - top3 ####
+cat51 = mlogit(data = mul.zwiazek,
+               s_pedt_cat ~ 1|niepenetracyjnytop3)
+summary(cat51)
+exp(cat51$coefficients)
+
+
+#### IIEF w kategoriach ####
+
+baza.zwiazek
+
+baza.zwiazek$iief_cat_no = relevel(baza.zwiazek$s_iief_efcat, ref = "no")
+
+summary(baza.zwiazek$iief_cat_no)
+
+iief.con = multinom(PEDT_12 ~ iief_cat_no, data = baza.zwiazek)
+print(iief.con)
+exp(coef(iief.con))
+coeftest(iief.con)
+
+
+
+#### 09.02.2022 - multinomial  ####
+
+#referencja - niskie PE
+baza.zwiazek$PEDT_12 = relevel(baza.zwiazek$s_pedt_cat, ref = "niskie")
+
+
+mlogit(data = mul.zwiazek,
+       s_pedt_cat ~ 1|or3)
+
+
+
+#### ryzyko PE ~ identyfikacja ####
+
+orientacja1 = multinom(PEDT_12 ~ or3, data = baza.zwiazek)
+print(orientacja1)
+summary(orientacja1)
+#OR dla modelu
+exp(coef(orientacja1))
+
+library(AER)
+#p values dla modelu
+coeftest(orientacja1)
+
+
+#### dodatkowa analiza Lauman ####
+
+#brak zainteresowania seksem
+lauman1 = multinom(PEDT_12 ~ nhs1, data = baza.zwiazek)
+print(lauman1)
+exp(coef(lauman1))
+coeftest(lauman1)
+
+#brak orgazmu
+lauman2 = multinom(PEDT_12 ~ nhs2, data = baza.zwiazek)
+print(lauman2)
+exp(coef(lauman2))
+coeftest(lauman2)
+
+#przedwczesny wytrysk
+lauman3 = multinom(PEDT_12 ~ nhs3, data = baza.zwiazek)
+print(lauman3)
+exp(coef(lauman3))
+coeftest(lauman3)
+
+#ból fizyczny
+lauman4 = multinom(PEDT_12 ~ nhs4, data = baza.zwiazek)
+print(lauman4)
+exp(coef(lauman4))
+coeftest(lauman4)
+
+#brak przyjemności
+lauman5 = multinom(PEDT_12 ~ nhs5, data = baza.zwiazek)
+print(lauman5)
+exp(coef(lauman5))
+coeftest(lauman5)
+
+#lek zadaniowy
+lauman6 = multinom(PEDT_12 ~ nhs6, data = baza.zwiazek)
+print(lauman6)
+exp(coef(lauman6))
+coeftest(lauman6)
+
+#problemy z erekcją
+lauman7 = multinom(PEDT_12 ~ nhs7, data = baza.zwiazek)
+print(lauman7)
+exp(coef(lauman7))
+coeftest(lauman7)
+
+
+# Multivariate model dla wszystkich mężczyzn ------------------------
+
+model.all = multinom(data = baza,
+                     PEDT_12 ~ or3 + 
+                       wiek +
+                       edu01 + 
+                       finanse_hardship01 +
+                       zwiazek01 + 
+                       sport_reg +
+                       ch_kraz +
+                       cz_penet_vag +
+                       cz_anal_czynny +
+                       cz_anal_pasywn +
+                       cz_oral_wkladpenisa +
+                       cz_oral_penisdobuzi +
+                       cz_recznykomus +
+                       s_aktywnosci +
+                       penetracjatop3 +
+                       nhs6 +
+                       s_iief_ef)
+
+print(model.all)
+summary(model.all)
+#OR dla modelu
+exp(coef(model.all))
+coeftest(model.all)
+
+
+# Multivariate model dla sexual minority -------------------------
+
+summary(as.factor(baza.gej$ident))
+
+baza.gej$ident[baza.gej$or3 == "hetero"] <- NA
+baza.gej$ident[baza.gej$or3 == "bi"] <- "bi"
+baza.gej$ident[baza.gej$or3 == "homo"] <- "homo"
+
+baza.gej$ident = as.factor(baza.gej$ident)
+
+summary(baza.gej$ident)
+
+model.gej = multinom(data = baza.gej,
+                     PEDT_12 ~ ident +
+                       residence01 +
+                       edu01 + 
+                       finanse_hardship01 +
+                       zwiazek01 + 
+                       sport_reg +
+                       ch_kraz + 
+                       ch_tarczyca + 
+                       ch_depresja +
+                       s_ihr +
+                       s_exrr + 
+                       s_clmr + 
+                       cz_calowanie +
+                       cz_calow_ciala +
+                       cz_anal_czynny +
+                       cz_oral_wkladpenisa +
+                       cz_recznykomus +
+                       s_aktywnosci +
+                       penetracjatop3 +
+                       nhs6 + 
+                       s_iief_ef) 
+
+print(model.gej)
+summary(model.gej)
+#OR dla modelu
+exp(coef(model.gej))
+coeftest(model.gej)
+
+
+baza.gej$n_inc = model.gej$fitted.values
+
+model.gej$na.action
+baza.gej$n_inc = model.gej$residuals
+
+model.gej$na.action
+
+plot(model.gej$residuals)
+
+baza.gej$n_includ = row.names(model.frame(model.gej))
+
+
+data_used <- baza.gej[row.names(model.frame(model.gej)),]
+
+library(writexl)
+write_xlsx(data_used, "data_used.xlsx")
+
+data_used
+
+
+
+#bez związku na wyłączność
+model.gej = multinom(data = baza.gej,
+                     PEDT_12 ~ edu01 + finanse_hardship01 +
+                       zwiazek01 + sport_reg +
+                       nhs6 + ch_kraz + ch_tarczyca + u_narkotyki +
+                       cz_anal_czynny + s_ihr +
+                       s_exrr + s_clmr + s_iief_ef) 
+
+
+
+print(model.gej)
+summary(model.gej)
+#OR dla modelu
+exp(coef(model.gej))
+coeftest(model.gej)
+
+summary(baza.gej$zwiazek01)
+
+table(baza.gej$zwiazek01, baza.gej$PEDT_12)
+
+
+
+# Multivariate model dla związek YES ---------------------
+
+
+model.zwiazek = multinom(data = baza.zwiazek,
+                     PEDT_12 ~ or3 + 
+                       edu01 +
+                       finanse_hardship01 + 
+                       partn_plec +
+                       sport_reg + 
+                       cz_penet_vag +
+                       cz_anal_czynny + 
+                       cz_anal_pasywn +
+                       cz_oral_wkladpenisa +
+                       cz_oral_penisdobuzi +
+                       cz_oral_mineta +
+                       s_aktywnosci +
+                       nhs6 + 
+                       s_iief_ef) 
+
+
+print(model.zwiazek)
+summary(model.zwiazek)
+#OR dla modelu
+exp(coef(model.zwiazek))
+coeftest(model.zwiazek)
+
+
+#model bez sex. minor
+model.zwiazek = multinom(data = baza.zwiazek,
+                         PEDT_12 ~ or3 + finanse_hardship01 + s_aktywnosci +
+                          partn_plec +  sport_reg + nhs6 + ch_nerwica + 
+                           cz_penet_vag +
+                           cz_anal_czynny + cz_anal_pasywn + cz_oral_wkladpenisa +
+                           cz_oral_penisdobuzi + cz_oral_mineta + s_iief_ef) 
+
+
+print(model.zwiazek)
+summary(model.zwiazek)
+#OR dla modelu
+exp(coef(model.zwiazek))
+coeftest(model.zwiazek)
+
+#model bez sex minor i bez płci partnera
+model.zwiazek = multinom(data = baza.zwiazek,
+                         PEDT_12 ~ or3 + finanse_hardship01 + s_aktywnosci +
+                           sport_reg + nhs6 + ch_nerwica + 
+                           cz_penet_vag +
+                           cz_anal_czynny + cz_anal_pasywn + cz_oral_wkladpenisa +
+                           cz_oral_penisdobuzi + cz_oral_mineta + s_iief_ef) 
+
+
+print(model.zwiazek)
+summary(model.zwiazek)
+#OR dla modelu
+exp(coef(model.zwiazek))
+coeftest(model.zwiazek)
+
+
+# PEDT podział na itemy ----------------------------
+
+table(baza$pedt1, baza$or3)
+table(baza$pedt2, baza$or3)
+table(baza$pedt3, baza$or3)
+table(baza$pedt4, baza$or3)
+table(baza$pedt5, baza$or3)
+
+#PEDT1 - plot
+
+ggplot(data = baza,
+       aes(pedt1, or3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  scale_x_continuous("PEDT item 1")+
+  scale_y_discrete("Sexual orientation (self-identify)", 
+                   labels = c("Heterosexual", 
+                              "Homosexual", 
+                              "Bisexual"))+
+  clean
+  
+
+
+#PEDT2 - plot
+
+ggplot(data = baza,
+       aes(pedt2, or3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  scale_x_continuous("PEDT item 2")+
+  scale_y_discrete("Sexual orientation (self-identify)", 
+                   labels = c("Heterosexual", 
+                              "Homosexual", 
+                              "Bisexual"))+
+  clean
+
+
+#PEDT3 - plot
+
+ggplot(data = baza,
+       aes(pedt3, or3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  scale_x_continuous("PEDT item 3")+
+  scale_y_discrete("Sexual orientation (self-identify)", 
+                   labels = c("Heterosexual", 
+                              "Homosexual", 
+                              "Bisexual"))+
+  clean
+
+
+#PEDT4 - plot
+
+ggplot(data = baza,
+       aes(pedt4, or3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  scale_x_continuous("PEDT item 4")+
+  scale_y_discrete("Sexual orientation (self-identify)", 
+                   labels = c("Heterosexual", 
+                              "Homosexual", 
+                              "Bisexual"))+
+  clean
+
+
+#PEDT5 - plot
+
+ggplot(data = baza,
+       aes(pedt5, or3))+
+  geom_jitter(alpha = .5, color = "#3C3838")+
+  scale_x_continuous("PEDT item 5")+
+  scale_y_discrete("Sexual orientation (self-identify)", 
+                   labels = c("Heterosexual", 
+                              "Homosexual", 
+                              "Bisexual"))+
+  clean
+
+
+
+
+
+#### łączne dane dla opisu ####
+tapply(baza$s_aktywnosci, baza$or3, mean, na.rm = TRUE)
+tapply(baza$s_aktywnosci, baza$or3, sd, na.rm = TRUE)
+
+
+describeBy(baza$n_12mr, group = baza$or3)
+describeBy(baza$s_aktywnosci, group = baza$or3)
+describeBy(baza$s_iief_ef, group = baza$or3)
+
+describeBy(baza$s_pedt, group = baza$or3)
+
+# Cronbach's alpha ----------------------
+pedt.cronbach = data.frame(baza$pedt1,baza$pedt2, baza$pedt3,baza$pedt4, baza$pedt5)
+
+
+library(ltm)
+cronbach.alpha(pedt.cronbach)
+
+iief.cronbach = data.frame(baza$ief1, baza$ief2, baza$ief3, baza$ief4, baza$ief5, baza$ief15)
+na.omit(iief.cronbach)
+cronbach.alpha(na.omit(iief.cronbach))
+
+
+
+
+
+# Quality data table -------------------
+summary(baza$or3)
+
+describeBy(baza$wiek, group = baza$or3)
+
+ggplot(data = baza,
+       aes(x = wiek))+
+  geom_histogram()+
+  theme_minimal()
+
+
+#średni czas związku
+describeBy(baza$czas_zwiazek, group = baza$or3)
+
+#IH
+describeBy(baza.gej$s_ihr, baza.gej$or3)
+
+#odrzucenie 
+describeBy(baza.gej$s_exrr, baza.gej$or3)
+
+#ukrywanie
+describeBy(baza.gej$s_clmr, baza.gej$or3)
+
+#dyskryminacja
+describeBy(baza.gej$s_smne, baza.gej$or3)
+
+#suma aktywności
+describeBy(baza$s_aktywnosci, group = baza$or3)
+
+#liczba partnerów
+describeBy(baza$n_12mr, group = baza$or3)
+
+#PEDT średnia
+describeBy(baza$s_pedt,group = baza$or3)
+
+#IIEF
+describeBy(baza$s_iief_ef, group = baza$or3)
+
+
+# tabele procentowe (procent w kolumnie) -----------
+source("http://pcwww.liv.ac.uk/~william/R/crosstab.r")
+
+crosstab(baza,
+         row.vars = "residence01",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+crosstab(baza,
+         row.vars = "residence01",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+
+#miejsce zamieszkania
+crosstab(baza,
+         row.vars = "residence01",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#university
+crosstab(baza,
+         row.vars = "edu01",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#sytuacja finansowa
+crosstab(baza,
+         row.vars = "finanse_hardship01",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#zwiazek stały
+crosstab(baza,
+         row.vars = "zwiazek01",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#zwiazek na wyłączność
+crosstab(baza,
+         row.vars = "exclusive01",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#sport
+crosstab(baza,
+         row.vars = "sport_reg",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#regularne używanie alkoholu
+crosstab(baza,
+         row.vars = "u_alkohol",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#regularne używanie nikotyny
+crosstab(baza,
+         row.vars = "u_nikotyna",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+
+#regularne używanie narkotyków
+crosstab(baza,
+         row.vars = "u_narkotyki",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+
+#performance
+crosstab(baza,
+         row.vars = "nhs6",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#CVD
+crosstab(baza,
+         row.vars = "ch_kraz",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#cukrzyca
+crosstab(baza,
+         row.vars = "ch_cukrzyca",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+
+#prostata
+crosstab(baza,
+         row.vars = "ch_prostata",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+
+#tarczyca
+crosstab(baza,
+         row.vars = "ch_tarczyca",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#prolactynemia
+crosstab(baza,
+         row.vars = "ch_chiperpro",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#cholesterol
+crosstab(baza,
+         row.vars = "ch_cholesterol",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#hiv
+crosstab(baza,
+         row.vars = "ch_aids",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#depresja
+crosstab(baza,
+         row.vars = "ch_depresja",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#neurosis
+crosstab(baza,
+         row.vars = "ch_nerwica",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#alkohol
+crosstab(baza,
+         row.vars = "ch_alkoiuzal",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#masturbacja
+crosstab(baza,
+         row.vars = "cz_masturbacja",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#passionate kiss
+crosstab(baza,
+         row.vars = "cz_calowanie",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#calowanie ciala
+crosstab(baza,
+         row.vars = "cz_calow_ciala",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#vaginal
+crosstab(baza,
+         row.vars = "cz_penet_vag",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#anal czynny
+crosstab(baza,
+         row.vars = "cz_anal_czynny",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#anal pasywny
+crosstab(baza,
+         row.vars = "cz_anal_pasywn",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#oralny insert
+crosstab(baza,
+         row.vars = "cz_oral_wkladpenisa",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+#oralny recept
+crosstab(baza,
+         row.vars = "cz_oral_penisdobuzi",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#oralny female
+crosstab(baza,
+         row.vars = "cz_oral_mineta",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#hand stimulation
+crosstab(baza,
+         row.vars = "cz_recznytobie",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#hand stomulation kogoś
+crosstab(baza,
+         row.vars = "cz_recznykomus",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+
+#penetracja descriptive
+crosstab(baza,
+         row.vars = "penetracjatop3",
+         col.vars = "or3",
+         type = c("f","c"),
+         addmargins = FALSE)
+
+
+#### porównania demograficzne ####
+chisq.test(baza$residence01, baza$or3)
+chisq.test(baza$residence01, baza$or3)$observed
+chisq.test(baza$residence01, baza$or3)$expected
+
+
+describe(baza)
+table(baza$or3)
+
+
+summary(baza$or3)
+
+
+
